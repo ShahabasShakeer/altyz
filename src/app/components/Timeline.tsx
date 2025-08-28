@@ -104,10 +104,10 @@ export default function Timeline({
   const rightCtrlDownRef = useRef(false);
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.code === "ControlRight") rightCtrlDownRef.current = true;
+      if (e.code === "ControlLeft") rightCtrlDownRef.current = true;
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code === "ControlRight") rightCtrlDownRef.current = false;
+      if (e.code === "ControlLeft") rightCtrlDownRef.current = false;
     };
     const blur = () => (rightCtrlDownRef.current = false);
     window.addEventListener("keydown", down);
