@@ -1,6 +1,8 @@
 import { type Subtitle } from "../types";
 import { msToTimestamp, timestampToMs } from "./time";
 
+const MIN_LEN_MS = 50;
+
 export function parseSRT(srt: string): Subtitle[] {
   const blocks = srt.split(/\r?\n\r?\n/);
   const out: Subtitle[] = [];
@@ -37,14 +39,42 @@ export function parseSRT(srt: string): Subtitle[] {
   return out;
 }
 
-// Serialize current subtitles to SRT text
-export function toSRT(subs: Subtitle[]): string {
-  const items = [...subs].sort((a, b) => a.startMs - b.startMs);
+export function normalizeSubs(subs: Subtitle[], durationMs?: number): Subtitle[] {
+  const d = typeof durationMs === 'number' ? Math.max(0, Math.round(durationMs)) : Number.POSITIVE_INFINITY;
+
+  const items = [...subs]
+    .map(s => {
+      const start = Math.max(0, Math.round(s.startMs || 0));
+      const end = Math.max(0, Math.round(s.endMs || 0));
+      return { ...s, startMs: start, endMs: Math.max(end, start + MIN_LEN_MS) };
+    })
+    .sort((a, b) => a.startMs - b.startMs);
+
+  // De-overlap in a single pass and clamp to duration
+  let prevEnd = 0;
+  for (const s of items) {
+    if (s.startMs < prevEnd) s.startMs = prevEnd;                // push right to previous end
+    s.endMs = Math.max(s.endMs, s.startMs + MIN_LEN_MS);         // ensure min length
+    if (isFinite(d)) {
+      s.startMs = Math.min(s.startMs, Math.max(0, d - MIN_LEN_MS));
+      s.endMs = Math.min(s.endMs, d);
+    }
+    prevEnd = s.endMs;
+  }
+  return items;
+}
+
+// Serialize to SRT text (after normalization)
+export function toSRT(subs: Subtitle[], durationMs?: number): string {
+  const items = normalizeSubs(subs, durationMs);
   return items
     .map((s, i) =>
-      `${i + 1}
+      `${i + 1
+      }
 ${msToTimestamp(s.startMs)} --> ${msToTimestamp(s.endMs)}
-${s.text}\n`
-    )
-    .join("\n");
+${(s.text || "").replace(/\r/g, "").trim()}
+
+`)
+    .join("")
+    .trimEnd() + "\n";
 }

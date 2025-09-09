@@ -75,7 +75,7 @@ export default function App() {
     // safe external seek: clamp + mark as explicit seek
     const externalSeek = React.useCallback((ms: number) => {
         if (DIAG_ENABLE) console.log("[SEEK:explicit]", ms);
-        setCurrentMsSafe(ms);           
+        setCurrentMsSafe(ms);
         setSeekNonce(n => n + 1);
     }, [setCurrentMsSafe]);
 
@@ -98,7 +98,7 @@ export default function App() {
 
     const exportSrt = React.useCallback(() => {
         if (!subtitles.length) return;
-        const srt = toSRT(subtitles);
+        const srt = toSRT(subtitles, videoDurationMs); // pass duration to clamp/normalize
         const blob = new Blob([srt], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -108,7 +108,7 @@ export default function App() {
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-    }, [subtitles]);
+    }, [subtitles, videoDurationMs]);
 
 
     const onSrtFile = async (file: File) => {
